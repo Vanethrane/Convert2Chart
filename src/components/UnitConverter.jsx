@@ -4,7 +4,8 @@ import {
   temperatureUnits,
   convertUnit
 } from "../data/conversions.js";
-import { conversionSlug } from "../utils/urls.js";
+import { getConversionSlug } from "../data/conversionPages.js";
+import { conversionPath } from "../utils/urls.js";
 
 function format(value) {
   if (!Number.isFinite(value)) return "";
@@ -26,10 +27,13 @@ function getUnits(category) {
 function updateUrl(category, from, to) {
   const categoryUnits = getUnits(category);
 
-  const slug = conversionSlug(
-    categoryUnits[from],
-    categoryUnits[to]
-  );
+  const slug =
+    getConversionSlug(category, from, to) ||
+    conversionPath(
+      category,
+      categoryUnits[from],
+      categoryUnits[to]
+    );
 
   window.history.pushState({}, "", `/${slug}/`);
 }

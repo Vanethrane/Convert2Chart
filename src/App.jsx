@@ -6,26 +6,23 @@ import {
   temperatureUnits,
   convertUnit
 } from "./data/conversions";
-import { getConversionPage } from "./data/conversionPages";
-
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function createUnitSlug(unit) {
-  return slugify(
-    unit.name
-      .replace(/^US /, "")
-      .replace(/ per /g, "-per-")
-  );
-}
-
-function findPage(slug) {
-  return getConversionPage(slug);
-}
+import {
+  getConversionPage,
+  getConversionSlug,
+  getCategoryHub,
+  getCategoryHubs
+} from "./data/conversionPages";
+import {
+  applyDocumentSeo,
+  buildBreadcrumbSchema,
+  buildFaqSchema,
+  buildHomeSchema,
+  buildWebPageSchema,
+  HOME_DESCRIPTION,
+  HOME_TITLE,
+  pageCanonical
+} from "./utils/seo";
+import { categorySlug } from "./utils/urls";
 
 function format(value) {
   if (!Number.isFinite(value)) {
@@ -38,22 +35,22 @@ function format(value) {
 function getFormula(page) {
   if (page.category === "temperature") {
     if (page.fromKey === "celsius" && page.toKey === "fahrenheit")
-      return "°F = (°C × 9/5) + 32";
+      return "F = (C x 9/5) + 32";
 
     if (page.fromKey === "fahrenheit" && page.toKey === "celsius")
-      return "°C = (°F - 32) × 5/9";
+      return "C = (F - 32) x 5/9";
 
     if (page.fromKey === "celsius" && page.toKey === "kelvin")
-      return "K = °C + 273.15";
+      return "K = C + 273.15";
 
     if (page.fromKey === "kelvin" && page.toKey === "celsius")
-      return "°C = K - 273.15";
+      return "C = K - 273.15";
 
     if (page.fromKey === "fahrenheit" && page.toKey === "kelvin")
-      return "K = (°F - 32) × 5/9 + 273.15";
+      return "K = (F - 32) x 5/9 + 273.15";
 
     if (page.fromKey === "kelvin" && page.toKey === "fahrenheit")
-      return "°F = (K - 273.15) × 9/5 + 32";
+      return "F = (K - 273.15) x 9/5 + 32";
   }
 
   const ratio = convertUnit(
@@ -108,7 +105,7 @@ function getRelated(page) {
         }
 
         results.push({
-          slug: `${createUnitSlug(from)}-to-${createUnitSlug(to)}`,
+          slug: getConversionSlug("temperature", fromKey, toKey),
           label: `${from.name} to ${to.name}`
         });
       }
@@ -126,14 +123,14 @@ function getRelated(page) {
         }
 
         results.push({
-          slug: `${createUnitSlug(from)}-to-${createUnitSlug(to)}`,
+          slug: getConversionSlug(page.category, fromKey, toKey),
           label: `${from.name} to ${to.name}`
         });
       }
     }
   }
 
-  return results.slice(0, 12);
+  return results.filter(item => item.slug).slice(0, 12);
 }
 
 function getSlug() {
@@ -187,6 +184,7 @@ function getFaqs(page) {
   const seo = getLongTailTerms(page);
   const { from, to, ratio } = seo;
   const examples = seo.values.slice(0, 4);
+  const formula = getFormula(page);
 
   return [
     {
@@ -199,7 +197,7 @@ function getFaqs(page) {
     },
     {
       question: `What is the formula for converting ${from} to ${to}?`,
-      answer: `The conversion formula for ${from} to ${to} is shown above the reference information on this page.`
+      answer: `The conversion formula is: ${formula}.`
     },
     {
       question: `What is 1 ${from} in ${to}?`,
@@ -220,15 +218,159 @@ function getFaqs(page) {
   ];
 }
 
+const POPULAR_LINKS = [
+  { slug: "meters-to-feet", label: "Meters to Feet" },
+  { slug: "feet-to-meters", label: "Feet to Meters" },
+  { slug: "kilograms-to-pounds", label: "Kilograms to Pounds" },
+  { slug: "pounds-to-kilograms", label: "Pounds to Kilograms" },
+  { slug: "celsius-to-fahrenheit", label: "Celsius to Fahrenheit" },
+  { slug: "fahrenheit-to-celsius", label: "Fahrenheit to Celsius" },
+  { slug: "kilometers-to-miles", label: "Kilometers to Miles" },
+  { slug: "miles-to-kilometers", label: "Miles to Kilometers" },
+  { slug: "liters-to-gallons", label: "Liters to US Gallons" },
+  { slug: "inches-to-centimeters", label: "Inches to Centimeters" },
+  { slug: "cooking/cups-to-milliliters", label: "Cups to Milliliters" },
+  { slug: "cooking/tablespoons-to-teaspoons", label: "Tablespoons to Teaspoons" }
+];
+
+function getCategoryHubLinks() {
+  return getCategoryHubs().map(hub => ({
+    slug: hub.slug,
+    label: hub.categoryName
+  }));
+}
+
+function HtmlSitemapView() {
+  const hubs = getCategoryHubs();
+  const title = "All Unit Conversions Sitemap | Convert2Chart";
+  const description =
+    "Complete HTML sitemap of every Convert2Chart unit category and conversion page for crawling and discovery.";
+  const canonical = pageCanonical("conversions");
+
+  applyDocumentSeo({
+    title,
+    description,
+    canonical,
+    jsonLd: [buildWebPageSchema({ title, description, canonical })]
+  });
+
+  return (
+    <main>
+      <SymbolsBackground />
+      <nav className="nav">
+        <a href="/" className="logo">Convert2Chart</a>
+      </nav>
+      <section className="hero">
+        <p className="tagline">SITEMAP</p>
+        <h1 className="page-title">All Unit Conversions</h1>
+        <p className="page-description">
+          Browse every category and conversion page on Convert2Chart.
+        </p>
+        <article className="seo-content">
+          {hubs.map(hub => (
+            <div key={hub.slug}>
+              <h2>
+                <a href={`/${hub.slug}/`}>{hub.categoryName}</a>
+              </h2>
+              <p>{hub.pages.length} converters in this category.</p>
+              <div className="related-links">
+                {hub.pages.slice(0, 24).map(item => (
+                  <a key={item.slug} href={`/${item.slug}/`}>
+                    {item.label}
+                  </a>
+                ))}
+              </div>
+              <p>
+                <a href={`/${hub.slug}/`}>
+                  See all {hub.categoryName} conversions
+                </a>
+              </p>
+            </div>
+          ))}
+        </article>
+      </section>
+    </main>
+  );
+}
+
+function CategoryHubView({ hub }) {
+  const canonical = pageCanonical(hub.slug);
+
+  applyDocumentSeo({
+    title: hub.title,
+    description: hub.description,
+    canonical,
+    jsonLd: [
+      buildWebPageSchema({
+        title: hub.title,
+        description: hub.description,
+        canonical,
+        categoryName: hub.categoryName
+      })
+    ]
+  });
+
+  return (
+    <main>
+      <SymbolsBackground />
+      <nav className="nav">
+        <a href="/" className="logo">Convert2Chart</a>
+      </nav>
+      <section className="hero">
+        <p className="tagline">{hub.categoryName.toUpperCase()}</p>
+        <h1 className="page-title">{hub.categoryName} Unit Conversions</h1>
+        <p className="page-description">
+          Explore every {hub.categoryName.toLowerCase()} conversion on
+          Convert2Chart. Each page includes a calculator, formula, chart,
+          and examples.
+        </p>
+        <article className="seo-content">
+          <h2>All {hub.categoryName.toLowerCase()} converters</h2>
+          <p>
+            {hub.pages.length} crawlable {hub.categoryName.toLowerCase()}{" "}
+            conversion pages are listed below.
+          </p>
+          <div className="related-links">
+            {hub.pages.map(item => (
+              <a key={item.slug} href={`/${item.slug}/`}>
+                {item.label}
+              </a>
+            ))}
+          </div>
+          <p>
+            <a href="/conversions/">View all unit categories</a>
+          </p>
+        </article>
+      </section>
+    </main>
+  );
+}
+
 export default function App() {
   const slug = getSlug();
-  const page = findPage(slug);
+  const isHtmlSitemap = slug === "conversions";
+  const hub = !isHtmlSitemap ? getCategoryHub(slug) : null;
+  const page =
+    !isHtmlSitemap && !hub ? getConversionPage(slug) : null;
 
   const [activeCategory, setActiveCategory] =
     useState(page?.category || "length");
 
+  if (isHtmlSitemap) {
+    return <HtmlSitemapView />;
+  }
+
+  if (hub) {
+    return <CategoryHubView hub={hub} />;
+  }
+
   if (!page) {
-    document.title = "Unit Converter | Convert2Chart";
+    applyDocumentSeo({
+      title: HOME_TITLE,
+      description: HOME_DESCRIPTION,
+      canonical: pageCanonical(),
+      jsonLd: [buildHomeSchema()]
+    });
 
     return (
       <main>
@@ -252,12 +394,45 @@ export default function App() {
           <p className="home-description">
             Convert length, weight, volume, temperature, area, speed,
             pressure, energy, power, time, data, frequency, angle,
-            force, torque, fuel economy, density and cooking units.
+            force, torque, fuel economy, density, cooking, and 50+ more
+            unit categories with formulas, charts, and examples.
           </p>
 
           <UnitConverter
             onCategoryChange={setActiveCategory}
           />
+        </section>
+
+        <section className="seo-content home-seo">
+          <h2>Popular unit conversions</h2>
+          <p>
+            Jump to commonly searched converters, or use the calculator
+            above to convert any supported unit pair.
+          </p>
+
+          <div className="related-links">
+            {POPULAR_LINKS.map(item => (
+              <a key={item.slug} href={`/${item.slug}/`}>
+                {item.label}
+              </a>
+            ))}
+          </div>
+
+          <h2>Unit categories</h2>
+          <p>
+            Convert2Chart covers everyday and technical measurements,
+            including electrical, thermal, magnetic, chemical, and
+            cooking units.{" "}
+            <a href="/conversions/">Browse the full conversion sitemap</a>.
+          </p>
+
+          <div className="related-links">
+            {getCategoryHubLinks().map(item => (
+              <a key={item.slug} href={`/${item.slug}/`}>
+                {item.label}
+              </a>
+            ))}
+          </div>
         </section>
       </main>
     );
@@ -266,86 +441,36 @@ export default function App() {
   const from = page.from.name.toLowerCase();
   const to = page.to.name.toLowerCase();
 
-  const title =
-    `${page.from.name} to ${page.to.name} Converter`;
-
-  const description =
-    `Convert ${from} to ${to} with our free online ${from} to ${to} calculator. See the conversion formula, examples, chart, and quick reference values.`;
-
-  document.title =
-    `${title} | Convert2Chart`;
-
-  const meta =
-    document.querySelector('meta[name="description"]');
-
-  if (meta) {
-    meta.setAttribute("content", description);
-  }
-
-  const canonicalUrl =
-    `${window.location.origin}/${slug}/`;
-
-  let canonical =
-    document.querySelector('link[rel="canonical"]');
-
-  if (!canonical) {
-    canonical = document.createElement("link");
-    canonical.rel = "canonical";
-    document.head.appendChild(canonical);
-  }
-
-  canonical.href = canonicalUrl;
-
-  function setMeta(property, content) {
-    let element =
-      document.querySelector(
-        `meta[property="${property}"]`
-      );
-
-    if (!element) {
-      element = document.createElement("meta");
-
-      element.setAttribute(
-        "property",
-        property
-      );
-
-      document.head.appendChild(element);
-    }
-
-    element.setAttribute(
-      "content",
-      content
-    );
-  }
-
-  setMeta(
-    "og:title",
-    `${title} | Convert2Chart`
-  );
-
-  setMeta(
-    "og:description",
-    description
-  );
-
-  setMeta(
-    "og:url",
-    canonicalUrl
-  );
-
+  const title = page.title;
+  const description = page.description;
+  const canonicalUrl = pageCanonical(slug);
   const formula = getFormula(page);
   const related = getRelated(page);
   const seo = getLongTailTerms(page);
   const faqs = getFaqs(page);
-
   const commonValues = seo.values;
+
+  applyDocumentSeo({
+    title,
+    description,
+    canonical: canonicalUrl,
+    jsonLd: [
+      buildWebPageSchema({
+        title,
+        description,
+        canonical: canonicalUrl,
+        categoryName: page.categoryName
+      }),
+      buildBreadcrumbSchema(slug, page.from.name, page.to.name),
+      buildFaqSchema(faqs, canonicalUrl)
+    ]
+  });
 
   return (
     <main>
       <SymbolsBackground />
 
-      <nav className="nav">
+      <nav className="nav" aria-label="Breadcrumb">
         <a href="/" className="logo">
           Convert2Chart
         </a>
@@ -366,7 +491,7 @@ export default function App() {
 
         <p className="page-description">
           Convert {from} to {to} quickly and accurately with this
-          free online calculator.
+          free online calculator. {formula}.
         </p>
 
         <UnitConverter
@@ -461,6 +586,14 @@ export default function App() {
               </a>
             ))}
           </div>
+
+          <p>
+            <a href={`/${categorySlug(page.category)}/`}>
+              More {page.categoryName} conversions
+            </a>
+            {" Â· "}
+            <a href="/conversions/">All categories</a>
+          </p>
 
           <h2>
             Frequently asked questions
