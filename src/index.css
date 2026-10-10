@@ -218,6 +218,10 @@ th {
     grid-template-columns: 1fr;
   }
 
+  .category-picker {
+    grid-template-columns: 1fr;
+  }
+
   .equals {
     text-align: center;
     padding: 0;
@@ -291,6 +295,141 @@ th {
   max-width: 600px;
   margin: 0 auto 35px;
   line-height: 1.6;
+}
+
+.category-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.category-picker label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.unit-search-field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.search-results {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+  max-height: 280px;
+  overflow: auto;
+}
+
+.search-results button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.search-results button:hover {
+  background: #f3f3f1;
+}
+
+.search-meta,
+.search-empty {
+  color: #777;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.search-empty {
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+.category-picker select,
+.unit-search {
+  height: 44px;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.copy-result {
+  margin-top: 8px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.copy-result:disabled {
+  cursor: default;
+  color: #aaa;
+}
+
+.crumbs {
+  margin: 0 auto 18px;
+  max-width: 850px;
+}
+
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+  color: #777;
+}
+
+.crumbs li {
+  display: flex;
+  gap: 8px;
+}
+
+.crumbs li:not(:last-child)::after {
+  content: "/";
+  color: #bbb;
+}
+
+.crumbs a:hover,
+.crumbs [aria-current="page"] {
+  color: #171717;
+}
+
+.crumbs [aria-current="page"] {
+  font-weight: 600;
 }
 
 .category-tabs {
@@ -960,6 +1099,9 @@ th {
   }
 
   .nav,
+  .crumbs,
+  .category-picker,
+  .search-results,
   .hero > .tagline,
   .hero > .page-title,
   .hero > .home-title,

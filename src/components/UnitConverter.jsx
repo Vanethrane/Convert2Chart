@@ -5,6 +5,13 @@ import {
   convertUnit
 } from "../data/conversions.js";
 import { getConversionSlug } from "../data/conversionPages.js";
+import {
+  CHART_LINE_MAX,
+  EVERYDAY_CATEGORIES,
+  chartDefaults,
+  searchCategories,
+  searchUnits
+} from "../data/contentShared.js";
 import { conversionPath } from "../utils/urls.js";
 
 function format(value) {
@@ -35,7 +42,14 @@ function updateUrl(category, from, to) {
       categoryUnits[to]
     );
 
-  window.history.pushState({}, "", `/${slug}/`);
+  const nextPath = `/${slug}`.replace(/\/$/, "");
+  const currentPath = window.location.pathname.replace(/\/$/, "");
+
+  if (currentPath === nextPath) {
+    return;
+  }
+
+  window.location.assign(`${nextPath}/`);
 }
 
 function UnitSymbol({ unit }) {
@@ -60,6 +74,8 @@ export default function UnitConverter({
   initialTo = "foot",
   onCategoryChange
 }) {
+  const initialChart = chartDefaults(initialCategory);
+
   const [category, setCategory] =
     useState(initialCategory);
 
@@ -72,14 +88,20 @@ export default function UnitConverter({
   const [value, setValue] =
     useState("");
 
+  const [unitQuery, setUnitQuery] =
+    useState("");
+
+  const [copied, setCopied] =
+    useState(false);
+
   const [chartStart, setChartStart] =
-    useState(1);
+    useState(initialChart.start);
 
   const [chartEnd, setChartEnd] =
-    useState(100);
+    useState(initialChart.end);
 
   const [chartLines, setChartLines] =
-    useState(20);
+    useState(initialChart.lines);
 
   const [chartUnits, setChartUnits] =
     useState([initialTo]);
@@ -112,6 +134,8 @@ export default function UnitConverter({
     const nextTo =
       keys[1];
 
+    const nextChart = chartDefaults(nextCategory);
+
     setCategory(nextCategory);
 
     if (onCategoryChange) {
@@ -121,6 +145,10 @@ export default function UnitConverter({
     setFrom(nextFrom);
     setTo(nextTo);
     setChartUnits([nextTo]);
+    setChartStart(nextChart.start);
+    setChartEnd(nextChart.end);
+    setChartLines(nextChart.lines);
+    setUnitQuery("");
 
     updateUrl(
       nextCategory,
@@ -227,7 +255,7 @@ export default function UnitConverter({
 
     const lines =
       Math.min(
-        20,
+        CHART_LINE_MAX,
         Math.max(
           1,
           Number(chartLines)
@@ -268,6 +296,63 @@ export default function UnitConverter({
   const chartValues =
     generateChartValues();
 
+  const query = unitQuery.trim();
+  const unitHits = searchUnits(query);
+  const searchResults = unitHits.length
+    ? unitHits
+    : searchCategories(query);
+
+  function chooseSearchResult(item) {
+    setUnitQuery("");
+
+    if (item.type === "category") {
+      changeCategory(item.key);
+      return;
+    }
+
+    const nextUnits = getUnits(item.category);
+    const keys = Object.keys(nextUnits);
+    const nextFrom = item.key;
+    const nextTo =
+      item.category === category && to !== item.key
+        ? to
+        : keys.find(key => key !== item.key);
+
+    if (item.category !== category) {
+      const nextChart = chartDefaults(item.category);
+      setCategory(item.category);
+
+      if (onCategoryChange) {
+        onCategoryChange(item.category);
+      }
+
+      setChartStart(nextChart.start);
+      setChartEnd(nextChart.end);
+      setChartLines(nextChart.lines);
+    }
+
+    setFrom(nextFrom);
+    setTo(nextTo);
+    setChartUnits([nextTo]);
+    updateUrl(item.category, nextFrom, nextTo);
+  }
+
+  const categoryOptions = [
+    ...Object.entries(units).map(([key, data]) => ({
+      key,
+      name: data.name
+    })),
+    { key: "temperature", name: "Temperature" }
+  ];
+
+  const everydayCategories = EVERYDAY_CATEGORIES
+    .map(key => categoryOptions.find(item => item.key === key))
+    .filter(Boolean);
+
+  const technicalCategories = categoryOptions
+    .filter(item => !EVERYDAY_CATEGORIES.includes(item.key))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
   const availableChartUnits =
     Object.entries(categoryUnits)
       .filter(
@@ -276,52 +361,94 @@ export default function UnitConverter({
           !chartUnits.includes(key)
       );
 
+  async function copyResult() {
+    if (!result) return;
+
+    try {
+      await navigator.clipboard.writeText(result);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    } catch {
+      setCopied(false);
+    }
+  }
+
   return (
     <>
       <div className="converter">
 
-        <div className="category-tabs">
+        <div className="category-picker">
+          <label>
+            Category
+            <select
+              value={category}
+              onChange={event => changeCategory(event.target.value)}
+            >
+              <optgroup label="Everyday">
+                {everydayCategories.map(item => (
+                  <option key={item.key} value={item.key}>
+                    {item.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Technical">
+                {technicalCategories.map(item => (
+                  <option key={item.key} value={item.key}>
+                    {item.name}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </label>
 
-          {Object.entries(units).map(
-            ([key, data]) => (
-              <button
-                key={key}
-                className={
-                  category === key
-                    ? "active"
-                    : ""
+          <div className="unit-search-field">
+            <label htmlFor="unit-search">
+              Search units
+            </label>
+            <input
+              id="unit-search"
+              className="unit-search"
+              type="search"
+              value={unitQuery}
+              placeholder="Search all units"
+              onChange={event => setUnitQuery(event.target.value)}
+              onKeyDown={event => {
+                if (event.key === "Enter" && searchResults[0]) {
+                  event.preventDefault();
+                  chooseSearchResult(searchResults[0]);
                 }
-                onClick={() =>
-                  changeCategory(key)
-                }
-                type="button"
-              >
-                {data.name}
-              </button>
-            )
-          )}
-
-          <button
-            className={
-              category === "temperature"
-                ? "active"
-                : ""
-            }
-            onClick={() =>
-              changeCategory(
-                "temperature"
-              )
-            }
-            type="button"
-          >
-            Temperature
-          </button>
-
+              }}
+            />
+            {query && (
+              <ul className="search-results">
+                {searchResults.length === 0 ? (
+                  <li className="search-empty">No matching units</li>
+                ) : (
+                  searchResults.map(item => (
+                    <li key={`${item.type}-${item.category || "category"}-${item.key}`}>
+                      <button
+                        type="button"
+                        onClick={() => chooseSearchResult(item)}
+                      >
+                        <span>{item.name}</span>
+                        <span className="search-meta">
+                          {item.type === "category"
+                            ? "Category"
+                            : `${item.symbol} · ${item.categoryName}`}
+                        </span>
+                      </button>
+                    </li>
+                  ))
+                )}
+              </ul>
+            )}
+          </div>
         </div>
 
         <div className="selectors">
 
           <select
+            aria-label="From unit"
             value={from}
             onChange={e =>
               changeFrom(
@@ -329,9 +456,7 @@ export default function UnitConverter({
               )
             }
           >
-            {Object.entries(
-              categoryUnits
-            ).map(
+            {Object.entries(categoryUnits).map(
               ([key, unit]) => (
                 <option
                   key={key}
@@ -354,6 +479,7 @@ export default function UnitConverter({
           </button>
 
           <select
+            aria-label="To unit"
             value={to}
             onChange={e =>
               changeTo(
@@ -361,9 +487,7 @@ export default function UnitConverter({
               )
             }
           >
-            {Object.entries(
-              categoryUnits
-            ).map(
+            {Object.entries(categoryUnits).map(
               ([key, unit]) => (
                 <option
                   key={key}
@@ -424,7 +548,7 @@ export default function UnitConverter({
             <div className="result-wrap">
 
               <output>
-                {result || "0"}
+                {result}
               </output>
 
               <span>
@@ -436,6 +560,15 @@ export default function UnitConverter({
               </span>
 
             </div>
+
+            <button
+              className="copy-result"
+              type="button"
+              onClick={copyResult}
+              disabled={result === ""}
+            >
+              {copied ? "Copied" : "Copy"}
+            </button>
 
           </div>
 
@@ -523,12 +656,12 @@ export default function UnitConverter({
               id="chart-lines"
               type="number"
               min="1"
-              max="20"
+              max={CHART_LINE_MAX}
               value={chartLines}
               onChange={e =>
                 setChartLines(
                   Math.min(
-                    20,
+                    CHART_LINE_MAX,
                     Math.max(
                       1,
                       Number(e.target.value)

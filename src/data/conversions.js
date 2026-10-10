@@ -154,10 +154,7 @@
       megahertz: { name: "Megahertz", symbol: "MHz", toBase: 1000000 },
       gigahertz: { name: "Gigahertz", symbol: "GHz", toBase: 1000000000 },
       terahertz: { name: "Terahertz", symbol: "THz", toBase: 1000000000000 },
-      petahertz: { name: "Petahertz", symbol: "PHz", toBase: 1000000000000000 },
-      kilohertz: { name: "Kilohertz", symbol: "kHz", toBase: 1000 },
-      megahertz: { name: "Megahertz", symbol: "MHz", toBase: 1000000 },
-      gigahertz: { name: "Gigahertz", symbol: "GHz", toBase: 1000000000 }
+      petahertz: { name: "Petahertz", symbol: "PHz", toBase: 1000000000000000 }
     }
   },
 
@@ -344,15 +341,6 @@
       pascalSecond: { name: "Pascal-seconds", symbol: "Pa·s", factor: 1 },
       poise: { name: "Poise", symbol: "P", factor: 0.1 },
       centipoise: { name: "Centipoise", symbol: "cP", factor: 0.001 }
-    }
-  },
-  kinematicViscosity: {
-    name: "Kinematic Viscosity",
-    units: {
-      squareMillimeterPerSecond: { name: "Square Millimeters per Second", symbol: "mm²/s", factor: 0.000001 },
-      squareMeterPerSecond: { name: "Square Meters per Second", symbol: "m²/s", factor: 1 },
-      stokes: { name: "Stokes", symbol: "St", factor: 0.0001 },
-      centistokes: { name: "Centistokes", symbol: "cSt", factor: 0.000001 }
     }
   },
   kinematicViscosity: {
@@ -585,16 +573,6 @@
       faradPerMeter: { name: "Farads per Meter", symbol: "F/m", factor: 1 }
     }
   },
-  permittivity: {
-    name: "Permittivity",
-    units: {
-      picofaradPerMeter: { name: "Picofarads per Meter", symbol: "pF/m", factor: 0.000000000001 },
-      nanofaradPerMeter: { name: "Nanofarads per Meter", symbol: "nF/m", factor: 0.000000001 },
-      microfaradPerMeter: { name: "Microfarads per Meter", symbol: "μF/m", factor: 0.000001 },
-      millifaradPerMeter: { name: "Millifarads per Meter", symbol: "mF/m", factor: 0.001 },
-      faradPerMeter: { name: "Farads per Meter", symbol: "F/m", factor: 1 }
-    }
-  },
   dielectricStrength: {
     name: "Dielectric Strength",
     units: {
@@ -750,6 +728,8 @@ export function convertTemperature(value, from, to) {
   throw new Error(`Unknown temperature unit: ${to}`);
 }
 
+export const MPG_TO_KM_PER_LITER = 0.4251437075;
+
 export function convertUnit(value, from, to, category) {
 
   if (category === "temperature") {
@@ -765,7 +745,7 @@ export function convertUnit(value, from, to, category) {
     let kmPerLiter;
 
     if (from === "mpg") {
-      kmPerLiter = value * 0.4251437075;
+      kmPerLiter = value * MPG_TO_KM_PER_LITER;
     }
     else if (from === "litersPer100Km") {
       if (value === 0) return Infinity;
@@ -779,7 +759,7 @@ export function convertUnit(value, from, to, category) {
     }
 
     if (to === "mpg") {
-      return kmPerLiter / 0.4251437075;
+      return kmPerLiter / MPG_TO_KM_PER_LITER;
     }
 
     if (to === "litersPer100Km") {

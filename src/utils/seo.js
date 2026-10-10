@@ -67,24 +67,16 @@ export function buildWebPageSchema({
   };
 }
 
-export function buildBreadcrumbSchema(slug, fromName, toName) {
+export function buildBreadcrumbSchema(items) {
   return {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
-    itemListElement: [
-      {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: `${SITE_URL}/`
-      },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: `${fromName} to ${toName}`,
-        item: pageCanonical(slug)
-      }
-    ]
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: item.slug ? pageCanonical(item.slug) : pageCanonical()
+    }))
   };
 }
 

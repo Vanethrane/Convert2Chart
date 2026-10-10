@@ -1,17 +1,17 @@
 import { useState } from "react";
 import UnitConverter from "./components/UnitConverter";
 import SymbolsBackground from "./components/SymbolsBackground";
-import {
-  units,
-  temperatureUnits,
-  convertUnit
-} from "./data/conversions";
+import { units } from "./data/conversions";
 import {
   getConversionPage,
-  getConversionSlug,
   getCategoryHub,
   getCategoryHubs
 } from "./data/conversionPages";
+import {
+  getHubBreadcrumbs,
+  getPageContent,
+  getSitemapBreadcrumbs
+} from "./data/pageContent";
 import {
   applyDocumentSeo,
   buildBreadcrumbSchema,
@@ -22,200 +22,33 @@ import {
   HOME_TITLE,
   pageCanonical
 } from "./utils/seo";
-import { categorySlug } from "./utils/urls";
-
-function format(value) {
-  if (!Number.isFinite(value)) {
-    return "0";
-  }
-
-  return Number(value.toFixed(6)).toString();
-}
-
-function getFormula(page) {
-  if (page.category === "temperature") {
-    if (page.fromKey === "celsius" && page.toKey === "fahrenheit")
-      return "F = (C x 9/5) + 32";
-
-    if (page.fromKey === "fahrenheit" && page.toKey === "celsius")
-      return "C = (F - 32) x 5/9";
-
-    if (page.fromKey === "celsius" && page.toKey === "kelvin")
-      return "K = C + 273.15";
-
-    if (page.fromKey === "kelvin" && page.toKey === "celsius")
-      return "C = K - 273.15";
-
-    if (page.fromKey === "fahrenheit" && page.toKey === "kelvin")
-      return "K = (F - 32) x 5/9 + 273.15";
-
-    if (page.fromKey === "kelvin" && page.toKey === "fahrenheit")
-      return "F = (K - 273.15) x 9/5 + 32";
-  }
-
-  const ratio = convertUnit(
-    1,
-    page.fromKey,
-    page.toKey,
-    page.category
-  );
-
-  return `1 ${page.from.symbol} = ${format(ratio)} ${page.to.symbol}`;
-}
-
-function getCommonValues(page) {
-  if (page.category === "temperature") {
-    return [-40, -20, 0, 10, 20, 25, 30, 37, 50, 100];
-  }
-
-  const values = {
-    length: [1, 5, 10, 12, 20, 50, 100],
-    weight: [1, 5, 10, 20, 50, 100],
-    volume: [1, 2, 5, 10, 20, 50, 100],
-    area: [1, 10, 50, 100, 500, 1000],
-    speed: [1, 5, 10, 25, 50, 60, 100],
-    pressure: [1, 5, 10, 20, 50, 100],
-    energy: [1, 5, 10, 50, 100, 500, 1000],
-    power: [1, 5, 10, 50, 100, 500, 1000],
-    time: [1, 5, 10, 15, 30, 60, 120],
-    data: [1, 5, 10, 25, 50, 100],
-    frequency: [1, 10, 100, 1000, 10000, 1000000],
-    angle: [0, 30, 45, 90, 180, 360],
-    force: [1, 5, 10, 25, 50, 100],
-    torque: [1, 5, 10, 25, 50, 100],
-    fuelEconomy: [1, 5, 10, 20, 30, 50, 100],
-    density: [1, 5, 10, 50, 100, 500],
-    cooking: [1, 2, 4, 8, 16, 32, 64]
-  };
-
-  return values[page.category] || [1, 5, 10, 20, 50, 100];
-}
-
-function getRelated(page) {
-  const results = [];
-
-  if (page.category === "temperature") {
-    for (const [fromKey, from] of Object.entries(temperatureUnits)) {
-      for (const [toKey, to] of Object.entries(temperatureUnits)) {
-        if (
-          fromKey === toKey ||
-          (fromKey === page.fromKey && toKey === page.toKey)
-        ) {
-          continue;
-        }
-
-        results.push({
-          slug: getConversionSlug("temperature", fromKey, toKey),
-          label: `${from.name} to ${to.name}`
-        });
-      }
-    }
-  } else {
-    const data = units[page.category];
-
-    for (const [fromKey, from] of Object.entries(data.units)) {
-      for (const [toKey, to] of Object.entries(data.units)) {
-        if (
-          fromKey === toKey ||
-          (fromKey === page.fromKey && toKey === page.toKey)
-        ) {
-          continue;
-        }
-
-        results.push({
-          slug: getConversionSlug(page.category, fromKey, toKey),
-          label: `${from.name} to ${to.name}`
-        });
-      }
-    }
-  }
-
-  return results.filter(item => item.slug).slice(0, 12);
-}
 
 function getSlug() {
   return window.location.pathname
     .replace(/^\/|\/$/g, "");
 }
 
-function getLongTailTerms(page) {
-  const from = page.from.name.toLowerCase();
-  const to = page.to.name.toLowerCase();
-  const ratio = format(
-    convertUnit(
-      1,
-      page.fromKey,
-      page.toKey,
-      page.category
-    )
+function Breadcrumbs({ items }) {
+  return (
+    <nav className="crumbs" aria-label="Breadcrumb">
+      <ol>
+        {items.map((item, index) => {
+          const current = index === items.length - 1;
+          const href = item.slug ? `/${item.slug}/` : "/";
+
+          return (
+            <li key={`${item.slug}-${item.name}`}>
+              {current ? (
+                <span aria-current="page">{item.name}</span>
+              ) : (
+                <a href={href}>{item.name}</a>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
-
-  const values = getCommonValues(page);
-
-  return {
-    from,
-    to,
-    ratio,
-    phrases: [
-      `${from} to ${to} converter`,
-      `convert ${from} to ${to}`,
-      `${from} to ${to} calculator`,
-      `${from} to ${to} conversion`,
-      `${from} in ${to}`,
-      `how to convert ${from} to ${to}`,
-      `how many ${to} are in one ${from}`,
-      `what is 1 ${from} in ${to}`
-    ],
-    values: values.map(value => ({
-      value,
-      result: format(
-        convertUnit(
-          value,
-          page.fromKey,
-          page.toKey,
-          page.category
-        )
-      )
-    }))
-  };
-}
-
-function getFaqs(page) {
-  const seo = getLongTailTerms(page);
-  const { from, to, ratio } = seo;
-  const examples = seo.values.slice(0, 4);
-  const formula = getFormula(page);
-
-  return [
-    {
-      question: `How many ${to} are in one ${from}?`,
-      answer: `One ${from} equals ${ratio} ${to}.`
-    },
-    {
-      question: `How do I convert ${from} to ${to}?`,
-      answer: `Enter the ${from} value in the converter above. Convert2Chart automatically applies the standard conversion relationship and displays the result in ${to}.`
-    },
-    {
-      question: `What is the formula for converting ${from} to ${to}?`,
-      answer: `The conversion formula is: ${formula}.`
-    },
-    {
-      question: `What is 1 ${from} in ${to}?`,
-      answer: `1 ${from} is equal to ${ratio} ${to}.`
-    },
-    {
-      question: `What is ${examples[0]?.value ?? 1} ${from} in ${to}?`,
-      answer: `${examples[0]?.value ?? 1} ${from} equals ${examples[0]?.result ?? ratio} ${to}.`
-    },
-    {
-      question: `What is ${examples[1]?.value ?? 5} ${from} in ${to}?`,
-      answer: `${examples[1]?.value ?? 5} ${from} equals ${examples[1]?.result ?? ratio} ${to}.`
-    },
-    {
-      question: `Is there a ${from} to ${to} calculator?`,
-      answer: `Yes. Use the calculator at the top of this page to convert any ${from} value to ${to} instantly.`
-    }
-  ];
 }
 
 const POPULAR_LINKS = [
@@ -251,7 +84,10 @@ function HtmlSitemapView() {
     title,
     description,
     canonical,
-    jsonLd: [buildWebPageSchema({ title, description, canonical })]
+    jsonLd: [
+      buildWebPageSchema({ title, description, canonical }),
+      buildBreadcrumbSchema(getSitemapBreadcrumbs())
+    ]
   });
 
   return (
@@ -261,6 +97,7 @@ function HtmlSitemapView() {
         <a href="/" className="logo">Convert2Chart</a>
       </nav>
       <section className="hero">
+        <Breadcrumbs items={getSitemapBreadcrumbs()} />
         <p className="tagline">SITEMAP</p>
         <h1 className="page-title">All Unit Conversions</h1>
         <p className="page-description">
@@ -306,7 +143,8 @@ function CategoryHubView({ hub }) {
         description: hub.description,
         canonical,
         categoryName: hub.categoryName
-      })
+      }),
+      buildBreadcrumbSchema(getHubBreadcrumbs(hub))
     ]
   });
 
@@ -317,6 +155,7 @@ function CategoryHubView({ hub }) {
         <a href="/" className="logo">Convert2Chart</a>
       </nav>
       <section className="hero">
+        <Breadcrumbs items={getHubBreadcrumbs(hub)} />
         <p className="tagline">{hub.categoryName.toUpperCase()}</p>
         <h1 className="page-title">{hub.categoryName} Unit Conversions</h1>
         <p className="page-description">
@@ -440,15 +279,15 @@ export default function App() {
 
   const from = page.from.name.toLowerCase();
   const to = page.to.name.toLowerCase();
+  const content = getPageContent(page);
 
   const title = page.title;
   const description = page.description;
   const canonicalUrl = pageCanonical(slug);
-  const formula = getFormula(page);
-  const related = getRelated(page);
-  const seo = getLongTailTerms(page);
-  const faqs = getFaqs(page);
-  const commonValues = seo.values;
+  const formula = content.formula;
+  const related = content.related;
+  const faqs = content.faqs;
+  const commonValues = content.rows;
 
   applyDocumentSeo({
     title,
@@ -461,7 +300,7 @@ export default function App() {
         canonical: canonicalUrl,
         categoryName: page.categoryName
       }),
-      buildBreadcrumbSchema(slug, page.from.name, page.to.name),
+      buildBreadcrumbSchema(content.breadcrumbs),
       buildFaqSchema(faqs, canonicalUrl)
     ]
   });
@@ -477,6 +316,8 @@ export default function App() {
       </nav>
 
       <section className="hero">
+
+        <Breadcrumbs items={content.breadcrumbs} />
 
         <p className="tagline">
           {activeCategory === "temperature"
@@ -588,7 +429,7 @@ export default function App() {
           </div>
 
           <p>
-            <a href={`/${categorySlug(page.category)}/`}>
+            <a href={`/${content.breadcrumbs[1].slug}/`}>
               More {page.categoryName} conversions
             </a>
             {" · "}

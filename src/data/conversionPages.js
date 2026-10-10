@@ -4,56 +4,21 @@ import {
   convertUnit
 } from "./conversions.js";
 import {
+  formatDisplay,
+  getFormula,
+  getSampleValues
+} from "./contentShared.js";
+import {
   conversionPath,
   unitSlug,
   PREFIXED_CATEGORIES,
   categorySlug
 } from "../utils/urls.js";
 
-function formatConversion(value) {
-  if (!Number.isFinite(value)) {
-    return "0";
-  }
-
-  return Number(value.toFixed(10)).toString();
-}
-
-function getCommonValues(category) {
-  const values = {
-    length: [1, 5, 10, 12, 20, 50, 100],
-    weight: [1, 5, 10, 20, 50, 100],
-    volume: [1, 2, 5, 10, 20, 50, 100],
-    area: [1, 10, 50, 100, 500, 1000],
-    speed: [1, 5, 10, 25, 50, 60, 100],
-    pressure: [1, 5, 10, 20, 50, 100],
-    energy: [1, 5, 10, 50, 100, 500, 1000],
-    power: [1, 5, 10, 50, 100, 500, 1000],
-    time: [1, 5, 10, 15, 30, 60, 120],
-    data: [1, 10, 100, 500, 1024, 2048, 10000],
-    frequency: [1, 10, 100, 1000, 10000, 100000, 1000000],
-    angle: [0, 30, 45, 60, 90, 180, 360],
-    force: [1, 5, 10, 25, 50, 100, 1000],
-    torque: [1, 5, 10, 25, 50, 100, 500],
-    fuelEconomy: [10, 20, 25, 30, 40, 50, 60],
-    density: [1, 2, 5, 10, 20, 50, 100],
-    cooking: [1, 2, 3, 4, 8, 16, 32]
-  };
-
-  return values[category] || [1, 5, 10, 20, 50, 100];
-}
-
-function getTemperatureValues() {
-  return [-40, -20, 0, 10, 20, 25, 30, 37, 50, 100];
-}
-
 function createPage(category, categoryName, fromKey, toKey, from, to, slug) {
   const fromLower = from.name.toLowerCase();
   const toLower = to.name.toLowerCase();
-  const ratio = formatConversion(
-    convertUnit(1, fromKey, toKey, category)
-  );
-
-  return {
+  const page = {
     slug,
     category,
     categoryName,
@@ -68,19 +33,19 @@ function createPage(category, categoryName, fromKey, toKey, from, to, slug) {
 
     title: `${from.name} to ${to.name} Converter | Convert2Chart`,
 
-    description:
-      `Convert ${fromLower} to ${toLower} instantly. 1 ${from.symbol} = ${ratio} ${to.symbol}. Free ${fromLower} to ${toLower} calculator with formula, chart, and examples.`,
+    description: "",
 
-    formula:
-      category === "temperature"
-        ? null
-        : `1 ${from.symbol} = ${ratio} ${to.symbol}`,
+    formula: "",
 
-    commonValues:
-      category === "temperature"
-        ? getTemperatureValues()
-        : getCommonValues(category)
+    commonValues: getSampleValues(category)
   };
+
+  const ratio = formatDisplay(convertUnit(1, fromKey, toKey, category));
+  page.formula = getFormula(page);
+  page.description =
+    `Convert ${fromLower} to ${toLower} instantly. 1 ${from.symbol} = ${ratio} ${to.symbol}. Free ${fromLower} to ${toLower} calculator with formula, chart, and examples.`;
+
+  return page;
 }
 
 function resolveSlug(category, from, to, usedSlugs) {

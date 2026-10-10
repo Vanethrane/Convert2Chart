@@ -8,7 +8,8 @@
     "client": "vite",
     "server": "node server/index.js",
     "build": "vite build && node scripts/generate-static.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^5.1.0",
