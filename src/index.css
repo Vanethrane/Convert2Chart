@@ -1101,6 +1101,10 @@ th {
   gap: 16px;
 }
 
+.ad-placements-inline {
+  margin: 28px auto;
+}
+
 @media print {
 
   body {

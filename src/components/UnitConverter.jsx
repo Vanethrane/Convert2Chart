@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import {
   units,
   temperatureUnits,
@@ -13,6 +13,54 @@ import {
   searchUnits
 } from "../data/contentShared.js";
 import { conversionPath } from "../utils/urls.js";
+
+const MOBILE_BANNER =
+  "//massivesalad.com/b.XpVOsUdvGSlF0GYGWXcA/Fe-mx9rubZUUlljkCPWT/cm1bM/DQc/w/MrT/cSt/NpzTUlwVNOzCAUyFMuQy";
+const DESKTOP_BANNER =
+  "//massivesalad.com/b/X.VHs/d/G/lw0NYzWJci/dekmE9Pu-Z/UMlnkQPqT/cz1oMwDWcswQMBjukFt/NUzaUPw-NczlAwzWMDwv";
+const SHARED_BANNER =
+  "//massivesalad.com/bGXqVKs.dqGslK0VY/W/cY/ZeFmY9/u/Z_UslNkxPOTJcA1iMwDDcfwaNRDkUstZNKzQUEwiNnz/AM0AONQz";
+const DIRECT_BANNER =
+  "https://motionless-bus.com/bS3HV.0mPT3mpivEbjmCVnJiZtDi0T3/NtT/AK3QM/D/Y/xrL/TmcH1cMlDmcgwEN_jOUV";
+
+function loadBanner(parent, src) {
+  const script = document.createElement("script");
+  script.settings = {};
+  script.src = src;
+  script.async = true;
+  script.referrerPolicy = "no-referrer-when-downgrade";
+  parent.appendChild(script);
+}
+
+function BannerSlot() {
+  const slot = useRef(null);
+
+  useEffect(() => {
+    const parent = slot.current;
+
+    if (!parent) return;
+
+    const mobile = window.matchMedia("(max-width: 768px)").matches;
+    const sources = mobile
+      ? [MOBILE_BANNER, MOBILE_BANNER]
+      : [DESKTOP_BANNER, DESKTOP_BANNER];
+
+    for (const src of [...sources, SHARED_BANNER, DIRECT_BANNER]) {
+      loadBanner(parent, src);
+    }
+
+    return () => {
+      parent.replaceChildren();
+    };
+  }, []);
+
+  return (
+    <div
+      className="ad-placements ad-placements-inline"
+      ref={slot}
+    />
+  );
+}
 
 function format(value) {
   if (!Number.isFinite(value)) return "";
@@ -575,6 +623,8 @@ export default function UnitConverter({
         </div>
 
       </div>
+
+      <BannerSlot />
 
       <section
         className="conversion-chart"
