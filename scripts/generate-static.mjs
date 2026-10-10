@@ -329,6 +329,11 @@ function buildHomePage(template) {
   });
 
   html = html.replace(
+    /<\/head>/i,
+    `    <meta name="5ae4d2a9a152d5aaa85858dda8d5745468d8269e" content="5ae4d2a9a152d5aaa85858dda8d5745468d8269e" />\n  </head>`
+  );
+
+  html = html.replace(
     /<div id="root"><\/div>/i,
     `<div id="root"><nav class="nav"><a href="/" class="logo">Convert2Chart</a></nav><section class="hero"><p class="tagline">SIMPLE. FAST. ACCURATE.</p><h1 class="home-title">Unit Converter</h1><p class="home-description">${escapeHtml(HOME_DESCRIPTION)}</p></section>${homeSeo}</div>`
   );
